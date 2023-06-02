@@ -1,0 +1,34 @@
+version: "3.9"
+services:
+  prometheus:
+    image: prom/prometheus:v2.38.0
+    restart: always
+    ports: ["9091:9090"]
+    volumes:
+      - "./test/config/prometheus.yml:/etc/prometheus/prometheus.yml:ro"
+      - "tsdbVolume:/prometheus:rw"
+    command:
+      - "--web.enable-remote-write-receiver"
+      - "--storage.tsdb.retention.time=10d"
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.console.libraries=/usr/share/prometheus/console_libraries"
+      - "--web.console.templates=/usr/share/prometheus/consoles"
+    networks:
+      - "shared"
+
+
+  test-metric-app:
+    image: tkgregory/sample-metrics-application:latest
+    restart: unless-stopped
+    ports: ["2021:8080"]
+    environment:
+      ENVIRONMENT: "DockerCompose"
+    networks:
+      - "shared"
+
+volumes:
+  tsdbVolume: {}
+
+networks:
+  shared:

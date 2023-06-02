@@ -1,0 +1,12 @@
+global:
+  scrape_interval: 5s
+  evaluation_interval: 30s
+
+scrape_configs:
+- job_name: test-metric-app
+  metrics_path: /actuator/prometheus
+  dns_sd_configs:
+  - names:
+    - test-metric-app
+    type: A
+    port: 8080

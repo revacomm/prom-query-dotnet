@@ -1,6 +1,6 @@
-using PrometheusQuerySdK.Models;
+using PrometheusQuerySdk.Models;
 
-namespace PrometheusQuerySdK;
+namespace PrometheusQuerySdk;
 public interface IPrometheusClient {
   Task<ResponseEnvelope<QueryResults>> QueryAsync(
     String query,

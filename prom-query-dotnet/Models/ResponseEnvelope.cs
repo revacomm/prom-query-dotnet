@@ -1,4 +1,4 @@
-namespace PrometheusQuerySdK.Models;
+namespace PrometheusQuerySdk.Models;
 
 public record ResponseEnvelope<TData>(
   ResponseStatus Status,

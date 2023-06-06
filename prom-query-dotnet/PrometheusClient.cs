@@ -2,11 +2,10 @@ using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using PrometheusQuerySdK.Models;
-using PrometheusQuerySdK.Json;
-using PrometheusQuerySdK.Http;
+using PrometheusQuerySdk.Models;
+using PrometheusQuerySdk.Internal;
 
-namespace PrometheusQuerySdK;
+namespace PrometheusQuerySdk;
 public class PrometheusClient : IPrometheusClient {
   private const String BaseUrlPath = "/api/v1";
   private const String QueryUrlPath = "/query";

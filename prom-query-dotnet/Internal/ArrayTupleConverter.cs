@@ -6,9 +6,9 @@ using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace PrometheusQuerySdK.Json;
+namespace PrometheusQuerySdk.Internal;
 
-public class ArrayTupleConverter<TTuple> : JsonConverter<TTuple> where TTuple : ITuple {
+internal class ArrayTupleConverter<TTuple> : JsonConverter<TTuple> where TTuple : ITuple {
   public override TTuple Read(
     ref Utf8JsonReader reader,
     Type typeToConvert,
@@ -180,10 +180,3 @@ public static class ArrayTupleConverter {
     return new ArrayTupleConverter<TTuple>();
   }
 }
-
-
-
-
-
-
-

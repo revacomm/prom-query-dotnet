@@ -1,4 +1,4 @@
-namespace PrometheusQuerySdK.Models;
+namespace PrometheusQuerySdk.Models;
 
 public record QueryRangePostRequest(
   String Query,

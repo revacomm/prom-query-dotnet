@@ -1,6 +1,6 @@
 using System.Collections.Immutable;
 
-namespace PrometheusQuerySdK.Models;
+namespace PrometheusQuerySdk.Models;
 
 public record QueryResults(
   QueryResultType ResultType,

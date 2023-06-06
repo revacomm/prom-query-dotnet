@@ -6,9 +6,9 @@ using System.Linq;
 using System.Net;
 using System.Text.Json;
 
-namespace PrometheusQuerySdK.Http;
+namespace PrometheusQuerySdk.Internal;
 
-public class UriQueryStringParameterCollection : IEnumerable<KeyValuePair<String, Object>>, ILookup<String, Object> {
+internal class UriQueryStringParameterCollection : IEnumerable<KeyValuePair<String, Object>>, ILookup<String, Object> {
   private readonly JsonSerializerOptions _options;
   private readonly IDictionary<String, List<Object>> _values = new Dictionary<String, List<Object>>();
 

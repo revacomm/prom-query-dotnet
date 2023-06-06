@@ -4,9 +4,9 @@ using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace PrometheusQuerySdK.Json;
+namespace PrometheusQuerySdk.Internal;
 
-public class ArrayTupleConverterFactory : JsonConverterFactory {
+internal class ArrayTupleConverterFactory : JsonConverterFactory {
   public override Boolean CanConvert(Type typeToConvert) {
     return typeToConvert.GetInterfaces().Contains(typeof(ITuple));
   }

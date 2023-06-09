@@ -1,0 +1,95 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net7.0</TargetFramework>
+    <RootNamespace>prom_query_tests</RootNamespace>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.5.0" />
+    <PackageReference Include="xunit" Version="2.4.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.4.5">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="coverlet.collector" Version="3.2.0">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Google.Protobuf" Version="3.21.9" />
+    <!-- Snappy depends on NETStandard 1.6 which has vulnerabilities, this forces an upgrade.
+         Note: 2.x is largely backward comaptible. -->
+    <PackageReference Include="NETStandard.Library" Version="2.0.3" />
+    <PackageReference Include="Snappy.Standard" Version="0.2.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Google.Protobuf.Tools" Version="3.21.9" GeneratePathProperty="true" />
+  </ItemGroup>
+
+  <Choose>
+    <When Condition="'$(OS)' == 'Windows_NT' And $([System.Environment]::Is64BitOperatingSystem)">
+      <PropertyGroup>
+        <ProtocToolPath>windows_x64/protoc.exe</ProtocToolPath>
+      </PropertyGroup>
+    </When>
+    <When Condition="'$(OS)' == 'Windows_NT' And !($([System.Environment]::Is64BitOperatingSystem))">
+      <PropertyGroup>
+        <ProtocToolPath>windows_x86/protoc.exe</ProtocToolPath>
+      </PropertyGroup>
+    </When>
+    <When
+      Condition="$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Linux))) And $([System.Environment]::Is64BitOperatingSystem)">
+      <PropertyGroup>
+        <ProtocToolPath>linux_x64/protoc</ProtocToolPath>
+      </PropertyGroup>
+    </When>
+    <When
+      Condition="$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Linux))) And !($([System.Environment]::Is64BitOperatingSystem))">
+      <PropertyGroup>
+        <ProtocToolPath>linux_x86/protoc</ProtocToolPath>
+      </PropertyGroup>
+    </When>
+    <When
+      Condition="$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::OSX)))">
+      <PropertyGroup>
+        <ProtocToolPath>macosx_x64/protoc</ProtocToolPath>
+      </PropertyGroup>
+    </When>
+  </Choose>
+
+  <PropertyGroup>
+    <ProtocArguments_Prometheus_Remote>
+      --csharp_out=./Protobuf/Prometheus
+      --csharp_opt=file_extension=.g.cs
+      --proto_path=../../lib/prometheus/prompb
+      --proto_path=../../lib/protobuf
+      --proto_path=../../lib/protobuf/protobuf
+      ../../lib/prometheus/prompb/remote.proto ../../lib/prometheus/prompb/types.proto
+    </ProtocArguments_Prometheus_Remote>
+    <ProtocArguments_Prometheus_Gogoproto>
+      --csharp_out=./Protobuf/Gogoproto
+      --csharp_opt=file_extension=.g.cs
+      --proto_path=../../lib/protobuf
+      --proto_path=../../lib/protobuf/protobuf
+      ../../lib/protobuf/gogoproto/gogo.proto
+    </ProtocArguments_Prometheus_Gogoproto>
+  </PropertyGroup>
+
+  <Target Name="generate_prometheus_types">
+    <Message Text="Generating C# Data Types for Prometheus Remote Write..." Importance="high" />
+    <Exec
+      Command="$(PkgGoogle_Protobuf_Tools)/tools/$(ProtocToolPath) $(ProtocArguments_Prometheus_Gogoproto.Replace('%0a', '').Trim())" />
+    <Exec
+      Command="$(PkgGoogle_Protobuf_Tools)/tools/$(ProtocToolPath) $(ProtocArguments_Prometheus_Remote.Replace('%0a', '').Trim())" />
+  </Target>
+
+</Project>

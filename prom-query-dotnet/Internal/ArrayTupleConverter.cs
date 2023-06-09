@@ -167,7 +167,7 @@ internal class ArrayTupleConverter<TTuple> : JsonConverter<TTuple> where TTuple 
   }
 }
 
-public static class ArrayTupleConverter {
+internal static class ArrayTupleConverter {
   public static JsonConverter ForType(Type typeToConvert) {
     return ((JsonConverter)ArrayTupleConverter.ForTypeMethod.MakeGenericMethod(typeToConvert)
       .Invoke(obj: null, Array.Empty<Object?>())!);

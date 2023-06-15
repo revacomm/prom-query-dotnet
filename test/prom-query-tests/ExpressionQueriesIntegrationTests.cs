@@ -6,15 +6,28 @@ namespace prom_query_tests;
 using PrometheusQuerySdk;
 using PrometheusQuerySdk.Models;
 
-public class UnitTest1 {
+public class ExpressionQueriesIntegrationTests {
   private readonly ITestOutputHelper output;
 
-  public UnitTest1(ITestOutputHelper outputHelper) {
+  public ExpressionQueriesIntegrationTests(ITestOutputHelper outputHelper) {
     this.output = outputHelper;
   }
 
   [Fact]
-  public async void QueryAsync() {
+  public async void TestQueryPostAsync() {
+    await this.QueryTestHelper((queryClient, query, timestamp)=>{
+      var latestDataQuery = new QueryPostRequest(query, timestamp, null);
+      return queryClient.QueryPostAsync(latestDataQuery, CancellationToken.None);
+    });
+  }
+
+  [Fact]
+  public async void TestQueryAsync() {
+    await this.QueryTestHelper((queryClient, query, timestamp)=>{
+      return queryClient.QueryAsync(query, timestamp);
+    });
+  }
+  private async Task QueryTestHelper(Func<PrometheusClient, string, DateTime, Task<ResponseEnvelope<QueryResults>>> runQuery){
     using var source = new CancellationTokenSource();
     var token = source.Token;
     var seed = DateTime.UtcNow;
@@ -43,8 +56,7 @@ public class UnitTest1 {
     var queryClient = new PrometheusClient(CreateHttpClient);
 
     // Q1: after last/most recent sample (should return last sample)
-    var latestDataQuery = new QueryPostRequest($"{metricName}", lastSampleTime.AddMilliseconds(1), null);
-    var latestresult = await queryClient.QueryPostAsync(latestDataQuery, token);
+    var latestresult = await runQuery(queryClient, $"{metricName}", lastSampleTime.AddMilliseconds(1));
     Assert.NotNull(latestresult.Data); // Tests if result data is present
     var latestresultData = Assert.Single(latestresult.Data.Result);
     Assert.True(latestresultData.Labels.TryGetValue("__name__", out var sample1labelValue));
@@ -54,14 +66,12 @@ public class UnitTest1 {
     Assert.Equal(sample1Value, sample1MetricValue); // Tests if our randomly generated sample 1 Value equals Prom's value
 
     // Q2: before first/earliest sample (no result)
-    var earliestDataQuery = new QueryPostRequest($"{metricName}", sample2Timestamp.AddMilliseconds(-1), null);
-    var earliestQueryResult = await queryClient.QueryPostAsync(earliestDataQuery, token);
+    var earliestQueryResult = await runQuery(queryClient, $"{metricName}", sample2Timestamp.AddMilliseconds(-1));
     Assert.NotNull(earliestQueryResult.Data); // Tests if the oldestquery result data is present
     Assert.Empty(earliestQueryResult.Data.Result); // Tests if the oldestquery result is empty
 
     // Q3: before last sample, after first/earliest sample (returns second to last item)
-    var inBetweenQuery = new QueryPostRequest($"{metricName}", lastSampleTime.AddMilliseconds(-1), null);
-    var inBetweenQueryResult = await queryClient.QueryPostAsync(inBetweenQuery, token);
+    var inBetweenQueryResult = await runQuery(queryClient, $"{metricName}", lastSampleTime.AddMilliseconds(-1));
     Assert.NotNull(inBetweenQueryResult.Data); // Tests if result is present
     var inBetweenQueryresultData = Assert.Single(inBetweenQueryResult.Data.Result);
 
@@ -71,7 +81,6 @@ public class UnitTest1 {
     Assert.True(Double.TryParse(inBetweenQueryresultData.Value.Value.Value, out var sample3MetricValue));
     Assert.Equal(sample3Value, sample3MetricValue); // Tests if our randomly generated sample 3 Value equals Prom's value
   }
-
   private async Task<String> PushTestData(Sample[] samples, CancellationToken token) {
     // initial setup
     using var httpClient = CreateHttpClient();

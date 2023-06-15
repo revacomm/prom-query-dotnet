@@ -9,6 +9,7 @@ services:
       - "tsdbVolume:/prometheus:rw"
     command:
       - "--web.enable-remote-write-receiver"
+      - "--web.enable-admin-api"
       - "--storage.tsdb.retention.time=10d"
       - "--config.file=/etc/prometheus/prometheus.yml"
       - "--storage.tsdb.path=/prometheus"

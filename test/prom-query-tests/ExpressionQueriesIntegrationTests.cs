@@ -15,7 +15,7 @@ public class ExpressionQueriesIntegrationTests {
 
   [Fact]
   public async void TestQueryPostAsync() {
-    await this.QueryTestHelper((queryClient, query, timestamp)=>{
+    await this.QueryTestHelper((queryClient, query, timestamp) => {
       var latestDataQuery = new QueryPostRequest(query, timestamp, null);
       return queryClient.QueryPostAsync(latestDataQuery, CancellationToken.None);
     });
@@ -23,11 +23,12 @@ public class ExpressionQueriesIntegrationTests {
 
   [Fact]
   public async void TestQueryAsync() {
-    await this.QueryTestHelper((queryClient, query, timestamp)=>{
+    await this.QueryTestHelper((queryClient, query, timestamp) => {
       return queryClient.QueryAsync(query, timestamp);
     });
   }
-  private async Task QueryTestHelper(Func<PrometheusClient, string, DateTime, Task<ResponseEnvelope<QueryResults>>> runQuery){
+
+  private async Task QueryTestHelper(Func<PrometheusClient, String, DateTime, Task<ResponseEnvelope<QueryResults>>> runQuery){
     using var source = new CancellationTokenSource();
     var token = source.Token;
     var seed = DateTime.UtcNow;

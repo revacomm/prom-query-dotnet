@@ -82,6 +82,7 @@ public class ExpressionQueriesIntegrationTests {
     Assert.True(Double.TryParse(inBetweenQueryresultData.Value.Value.Value, out var sample3MetricValue));
     Assert.Equal(sample3Value, sample3MetricValue); // Tests if our randomly generated sample 3 Value equals Prom's value
   }
+
   private async Task<String> PushTestData(Sample[] samples, CancellationToken token) {
     // initial setup
     using var httpClient = CreateHttpClient();

@@ -92,6 +92,8 @@ public class UnitTest1 {
     return metricName;
   }
 
+  // creates sample data using the end of sample range
+  // and the number of samples requested to be made
   private Sample[] CreateTestData(DateTime seedTime, int numSamples) {
     // timestamp configuration
     var samples = new List<Sample>();

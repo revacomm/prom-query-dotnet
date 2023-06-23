@@ -13,6 +13,7 @@ public class ExpressionQueriesIntegrationTests {
     this.output = outputHelper;
   }
 
+  // Test Query Post Async
   [Fact]
   public async void TestQueryPostAsync() {
     await this.QueryTestHelper((queryClient, query, timestamp) => {
@@ -21,10 +22,28 @@ public class ExpressionQueriesIntegrationTests {
     });
   }
 
+  // Test Query Async
   [Fact]
   public async void TestQueryAsync() {
     await this.QueryTestHelper((queryClient, query, timestamp) => {
       return queryClient.QueryAsync(query, timestamp);
+    });
+  }
+
+  // Test Query Range Post Async
+  [Fact]
+  public async void TestQueryRangePostAsync() {
+    await this.QueryRangeTestHelper((queryClient, query, start, end, step) => {
+      var earliestRangeDataQuery = new QueryRangePostRequest(query, start, end, step, null);
+      return queryClient.QueryRangePostAsync(earliestRangeDataQuery, CancellationToken.None);
+    });
+  }
+
+  // Test Query Range Async
+  [Fact]
+  public async void TestQueryRangeAsync() {
+    await this.QueryRangeTestHelper((queryClient, query, start, end, step) => {
+      return queryClient.QueryRangeAsync(query, start, end, step, null);
     });
   }
 
@@ -50,6 +69,7 @@ public class ExpressionQueriesIntegrationTests {
     var sample1 = samples.Last<Sample>();
     var sample1Value = sample1.Value;
     var sample1Timestamp = ConvertSampleTimestamp(sample1.Timestamp);
+
     // push test data, save random metric name
     var metricName = await PushTestData(samples, token);
 
@@ -81,6 +101,124 @@ public class ExpressionQueriesIntegrationTests {
     Assert.True(inBetweenQueryresultData.Value.HasValue); // Tests if result data has a value
     Assert.True(Double.TryParse(inBetweenQueryresultData.Value.Value.Value, out var sample3MetricValue));
     Assert.Equal(sample3Value, sample3MetricValue); // Tests if our randomly generated sample 3 Value equals Prom's value
+  }
+
+  private async Task QueryRangeTestHelper(Func<PrometheusClient, String, DateTime, DateTime, TimeSpan, Task<ResponseEnvelope<QueryResults>>> runQueryRange){
+    using var source = new CancellationTokenSource();
+    var token = source.Token;
+    var seed = DateTime.UtcNow;
+    var lastSampleTime = seed.Subtract(TimeSpan.FromMinutes(1));
+
+    // push test data
+    var samples = CreateTestData(lastSampleTime, 4);
+
+    // get data for sample out of range
+    var firstSample = samples.First();
+    var firstSampleTime = ConvertSampleTimestamp(firstSample.Timestamp);
+
+    // get data for second to last sample
+    var sample2 = samples[samples.Count() - 2];
+    var sample2RangeValue = sample2.Value;
+
+    // get data for last sample
+    var lastsample = samples.Last<Sample>();
+    var lastsampleRangeValue = lastsample.Value;
+    var lastsampleRangeTimestamp = ConvertSampleTimestamp(lastsample.Timestamp);
+
+    // create timespan
+    TimeSpan step = TimeSpan.FromMinutes(1);
+
+    // push test data, save random metric name
+    var metricName = await PushTestData(samples, token);
+
+    // initialize PrometheusClient
+    var queryClient = new PrometheusClient(CreateHttpClient);
+
+    // Q1: Out of range test EARLY
+    var queryEarlyOutOfRangeResult = await runQueryRange(
+      queryClient,
+      $"{metricName}",
+      firstSampleTime.AddMinutes(-4),
+      firstSampleTime.AddMinutes(-3),
+      step
+    );
+    Assert.NotNull(queryEarlyOutOfRangeResult.Data); // Tests if the query out of range result data is present
+    Assert.Empty(queryEarlyOutOfRangeResult.Data.Result); // Tests if the query out of range result is empty
+
+    // Q2: Out of range test LATE
+    var queryLateOutOfRangeResult = await runQueryRange(
+      queryClient,
+      $"{metricName}",
+      lastSampleTime.AddMinutes(10), // Additional time was required to properly run test
+      lastSampleTime.AddMinutes(15), // Additional time was required to properly run test
+      step
+    );
+    Assert.NotNull(queryLateOutOfRangeResult.Data); // Tests if the query out of range result data is present
+    Assert.Empty(queryLateOutOfRangeResult.Data.Result); // Tests if the query out of range result is empty
+
+    // Q3: Middle range test
+      var middleQueryRangeResult = await runQueryRange(
+        queryClient,
+        $"{metricName}",
+        firstSampleTime.AddMinutes(3).AddMilliseconds(1),
+        lastSampleTime.AddMilliseconds(-5),
+        step
+      );
+      Assert.NotNull(middleQueryRangeResult.Data); // Tests if result is present
+      var middleQueryRangeresultData = Assert.Single(middleQueryRangeResult.Data.Result);
+      Assert.NotNull(middleQueryRangeresultData);
+      Assert.True(middleQueryRangeresultData.Labels.TryGetValue("__name__", out var middleQueryLabelValue));
+      Assert.Equal(metricName, middleQueryLabelValue); // Tests if both names are equal
+      Assert.NotNull(middleQueryRangeresultData.Values);
+      var middleRangeResult = Assert.Single(middleQueryRangeresultData.Values); // Tests if result data has a value
+      Assert.True(Double.TryParse(middleRangeResult.Value, out var middleQueryRangeMetricValue));
+      Assert.Equal(sample2RangeValue, middleQueryRangeMetricValue); // Tests if our randomly generated sample 3 Value equals Prom's value
+
+    // Q4: Edge range test *range over last time sample*
+      var edgeQueryRangeResult = await runQueryRange(
+        queryClient,
+        $"{metricName}",
+        firstSampleTime.AddMinutes(4).AddMilliseconds(1),
+        lastSampleTime.AddMilliseconds(10),
+        step
+      );
+      Assert.NotNull(edgeQueryRangeResult.Data); // Tests if result is present
+      var edgeQueryRangeresultData = Assert.Single(edgeQueryRangeResult.Data.Result);
+      Assert.NotNull(edgeQueryRangeresultData);
+      Assert.True(edgeQueryRangeresultData.Labels.TryGetValue("__name__", out var edgeQueryLabelValue));
+      Assert.Equal(metricName, edgeQueryLabelValue); // Tests if both names are equal
+      Assert.NotNull(edgeQueryRangeresultData.Values);
+      var edgeRangeResult = Assert.Single(edgeQueryRangeresultData.Values); // Tests if result data has a value
+      Assert.True(Double.TryParse(edgeRangeResult.Value, out var edgeQueryRangeMetricValue));
+      Assert.Equal(lastsampleRangeValue, edgeQueryRangeMetricValue); // Tests if our randomly generated sample 3 Value equals Prom's value
+
+    // Full Range Test
+    var fullRangeQueryResult = await runQueryRange(
+      queryClient,
+      $"{metricName}",
+      firstSampleTime,
+      lastSampleTime.AddMilliseconds(1),
+      step
+    );
+    Assert.NotNull(fullRangeQueryResult.Data); // Tests if full range query result is present
+    var fullRangeQueryResultCollection = Assert.Single(fullRangeQueryResult.Data.Result);
+    Assert.True(fullRangeQueryResultCollection.Labels.TryGetValue("__name__", out var fullRangeLabelValue));
+    Assert.Equal(metricName, fullRangeLabelValue); // Tests if both names are equal
+
+    var queryResultArr = fullRangeQueryResultCollection.Values;
+
+    Assert.NotNull(queryResultArr);
+    Assert.Equal(samples.Length, queryResultArr.Count); // Checks if the number of samples is equal to the number of queries
+    for(int i = 0; i == samples.Length; i++)
+    {
+      var currSampleEl = samples[i];
+      var currResultEl = queryResultArr[i];
+      // tests if timestamps are equal
+      Assert.Equal(currSampleEl.Timestamp * 1000, currResultEl.Timestamp);
+      // test if the sample values and query values are equal
+      Assert.True(Double.TryParse(currResultEl.Value, out var queryVal));
+      Assert.Equal(currSampleEl.Value, queryVal);
+    }
   }
 
   private async Task<String> PushTestData(Sample[] samples, CancellationToken token) {

@@ -146,6 +146,10 @@ public class ExpressionQueriesIntegrationTests {
     Assert.Empty(queryEarlyOutOfRangeResult.Data.Result); // Tests if the query out of range result is empty
 
     // Q2: Out of range test LATE
+    // Although we tested a range that was just outside the set range, we still received a result
+    // we suspect that this is Prometheus' defaulting function, however, we are not sure
+    // to solve this we had to set the range much further outside the set range
+    // to receive the correct test result
     var queryLateOutOfRangeResult = await runQueryRange(
       queryClient,
       $"{metricName}",

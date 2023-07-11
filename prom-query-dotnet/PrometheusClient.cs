@@ -12,7 +12,7 @@ public class PrometheusClient : IPrometheusClient {
   private const String QueryUrlPath = "/query";
   private const String QueryRangeUrlPath = "/query_range";
   private const String LabelsUrlPath = "/labels";
-  private const String LabelValuesUrlPath = "/label/<label_name>/values";
+  private const String LabelValuesUrlPath = "/label";
   private const String SeriesUrlPath = "/series";
   private const String FormUrlEncodedMediaType = "application/x-www-form-urlencoded";
 
@@ -251,12 +251,41 @@ public class PrometheusClient : IPrometheusClient {
     // var labelVal = labels[0];
     using var response = await client.PostAsync(
       // $"{PrometheusClient.BaseUrlPath}{PrometheusClient.LabelsUrlPath}?match[]={labelVal}",
-      $"{PrometheusClient.BaseUrlPath}{PrometheusClient.LabelsUrlPath}" +
-      (parameters.Count > 0 ? $"?{parameters}" : ""),
+      $"{PrometheusClient.BaseUrlPath}{PrometheusClient.LabelsUrlPath}",
       new StringContent(
         parameters.ToString(),
         Encoding.UTF8,
         PrometheusClient.FormUrlEncodedMediaType),
+      cancellationToken
+    );
+
+    return await PrometheusClient.HandleLabelsResponse(response, cancellationToken);
+  }
+
+  public async Task<ResponseEnvelope<IImmutableList<String>>> LabelValueAsync(
+    String labelKey,
+    String[]? seriesSelectors,
+    DateTime? start,
+    DateTime? end,
+    CancellationToken cancellationToken = default) {
+
+    var parameters = new UriQueryStringParameterCollection();
+
+    if (seriesSelectors != null && seriesSelectors.Any()) {
+      foreach (var label in seriesSelectors) {
+        parameters.Add(key: "match[]", label);
+      }
+    }
+
+    if(start != null && end != null){
+      parameters.Add(key: "start", start);
+      parameters.Add(key: "end", end);
+    }
+
+    using var client = this._clientFactory();
+    using var response = await client.GetAsync(
+      $"{PrometheusClient.BaseUrlPath}{PrometheusClient.LabelValuesUrlPath}/{labelKey}/values" +
+      (parameters.Count > 0 ? $"?{parameters}" : ""),
       cancellationToken
     );
 

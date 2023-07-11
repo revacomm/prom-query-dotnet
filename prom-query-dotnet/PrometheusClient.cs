@@ -230,6 +230,8 @@ public class PrometheusClient : IPrometheusClient {
 
   public async Task<ResponseEnvelope<IImmutableList<String>>> LabelsPostAsync(
     String[]? labels,
+    DateTime? start,
+    DateTime? end,
     CancellationToken cancellationToken = default) {
 
     var parameters = new UriQueryStringParameterCollection();
@@ -238,6 +240,11 @@ public class PrometheusClient : IPrometheusClient {
       foreach (var label in labels) {
         parameters.Add(key: "match[]", label);
       }
+    }
+
+    if(start != null && end != null){
+      parameters.Add(key: "start", start);
+      parameters.Add(key: "end", end);
     }
 
     using var client = this._clientFactory();

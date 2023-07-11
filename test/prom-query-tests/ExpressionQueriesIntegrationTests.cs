@@ -72,7 +72,7 @@ public class ExpressionQueriesIntegrationTests {
 
     // push test data, save random metric name
     var metricName = await PushTestData(samples, token);
-    output.WriteLine(metricName);
+
     // initialize PrometheusClient
     var queryClient = new PrometheusClient(CreateHttpClient);
 

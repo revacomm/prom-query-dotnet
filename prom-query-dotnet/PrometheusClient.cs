@@ -283,7 +283,6 @@ public class PrometheusClient : IPrometheusClient {
     }
 
     using var client = this._clientFactory();
-    // var labelVal = labels[0];
     using var response = await client.GetAsync(
       $"{PrometheusClient.BaseUrlPath}{PrometheusClient.LabelValuesUrlPath}/{labelKey}/values" +
       (parameters.Count > 0 ? $"?{parameters}" : ""),
@@ -292,41 +291,6 @@ public class PrometheusClient : IPrometheusClient {
 
     return await PrometheusClient.HandleLabelsResponse(response, cancellationToken);
   }
-
-  public async Task<ResponseEnvelope<IImmutableList<String>>> LabelValuePostAsync(
-    String labelKey,
-    String[]? seriesSelectors,
-    DateTime? start,
-    DateTime? end,
-    CancellationToken cancellationToken = default) {
-
-    var parameters = new UriQueryStringParameterCollection();
-
-    if (seriesSelectors != null && seriesSelectors.Any()) {
-      foreach (var label in seriesSelectors) {
-        parameters.Add(key: "match[]", label);
-      }
-    }
-
-    if(start != null && end != null){
-      parameters.Add(key: "start", start);
-      parameters.Add(key: "end", end);
-    }
-
-    using var client = this._clientFactory();
-    using var response = await client.PostAsync(
-      $"{PrometheusClient.BaseUrlPath}{PrometheusClient.LabelValuesUrlPath}/{labelKey}/values",
-      new StringContent(
-        parameters.ToString(),
-        Encoding.UTF8,
-        PrometheusClient.FormUrlEncodedMediaType),
-      cancellationToken
-    );
-
-    return await PrometheusClient.HandleLabelsResponse(response, cancellationToken);
-  }
-
-
 
   /// <summary>
   ///   Converts a C# <see cref="TimeSpan" /> to a

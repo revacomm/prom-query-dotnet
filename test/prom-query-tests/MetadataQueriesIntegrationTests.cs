@@ -56,14 +56,6 @@ public class MetadataQueriesIntegrationTests {
     });
   }
 
-  // Test Label Value Post Async
-  [Fact]
-  public async void TestLabelValuePostAsync() {
-    await this.LabelValueTestHelper((queryClient, labelKey, labels, token) => {
-      return queryClient.LabelValuePostAsync(labelKey, labels, null, null, token);
-    });
-  }
-
   private async Task LabelsTestHelper(Func<PrometheusClient, String[]?, CancellationToken, Task<ResponseEnvelope<IImmutableList<String>>>> runLabelQuery) {
     using var source = new CancellationTokenSource();
     var token = source.Token;

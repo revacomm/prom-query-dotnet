@@ -4,12 +4,16 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using PrometheusQuerySdk.Models;
 using PrometheusQuerySdk.Internal;
+using System.Collections.Immutable;
 
 namespace PrometheusQuerySdk;
 public class PrometheusClient : IPrometheusClient {
   private const String BaseUrlPath = "/api/v1";
   private const String QueryUrlPath = "/query";
   private const String QueryRangeUrlPath = "/query_range";
+  private const String LabelsUrlPath = "/labels";
+  private const String LabelValuesUrlPath = "/label/<label_name>/values";
+  private const String SeriesUrlPath = "/series";
   private const String FormUrlEncodedMediaType = "application/x-www-form-urlencoded";
 
   private readonly Func<HttpClient> _clientFactory;
@@ -105,6 +109,39 @@ public class PrometheusClient : IPrometheusClient {
     }
   }
 
+  private static async Task<ResponseEnvelope<IImmutableList<String>>> HandleLabelsResponse(
+    HttpResponseMessage response, CancellationToken ct) {
+    // if (successful response)
+    //   Deserialize ResponseEnvelope<QueryResults>
+    if (response.IsSuccessStatusCode) {
+      var responseBody =
+        await response.Content.ReadFromJsonAsync<ResponseEnvelope<IImmutableList<String>>>(
+          PrometheusClient.SerializerOptions,
+          ct
+        );
+
+      return responseBody ?? throw new InvalidOperationException("Prometheus API returned null response to query.");
+    } else {
+      // Non success error code? throw exception
+      //   if there is a body w/ ErrorType/Error, include that in the exception message (TODO: special exception type?)
+      if (response.Content.Headers.Contains("content-type")) {
+        var responseBody =
+          await response.Content.ReadFromJsonAsync<ResponseEnvelope<IImmutableList<String>>>(
+            PrometheusClient.SerializerOptions,
+            ct
+          );
+
+        throw new InvalidOperationException(
+          $"Prometheus returned non success status code ({response.StatusCode}) from query operation. Error Type: {responseBody?.ErrorType}, Detail: {responseBody?.Error}"
+        );
+      } else {
+        throw new InvalidOperationException(
+          $"Prometheus returned non success status code ({response.StatusCode}) from query operation."
+        );
+      }
+    }
+  }
+
   public async Task<ResponseEnvelope<QueryResults>> QueryRangeAsync(
     String query,
     DateTime start,
@@ -159,6 +196,71 @@ public class PrometheusClient : IPrometheusClient {
     );
 
     return await PrometheusClient.HandleQueryResponse(response, cancellationToken);
+  }
+
+  public async Task<ResponseEnvelope<IImmutableList<String>>> LabelsAsync(
+    String[]? labels,
+    DateTime? start,
+    DateTime? end,
+    CancellationToken cancellationToken = default) {
+    var parameters = new UriQueryStringParameterCollection();
+
+    if (labels != null && labels.Any()) {
+      foreach (var label in labels) {
+        parameters.Add(key: "match[]", label);
+      }
+    }
+
+    if(start != null && end != null){
+      parameters.Add(key: "start", start);
+      parameters.Add(key: "end", end);
+    }
+
+    using var client = this._clientFactory();
+    // var labelVal = labels[0];
+    using var response = await client.GetAsync(
+      // $"{PrometheusClient.BaseUrlPath}{PrometheusClient.LabelsUrlPath}?match[]={labelVal}",
+      $"{PrometheusClient.BaseUrlPath}{PrometheusClient.LabelsUrlPath}" +
+      (parameters.Count > 0 ? $"?{parameters}" : ""),
+      cancellationToken
+    );
+
+    return await PrometheusClient.HandleLabelsResponse(response, cancellationToken);
+  }
+
+  public async Task<ResponseEnvelope<IImmutableList<String>>> LabelsPostAsync(
+    String[]? labels,
+    DateTime? start,
+    DateTime? end,
+    CancellationToken cancellationToken = default) {
+
+    var parameters = new UriQueryStringParameterCollection();
+
+    if (labels != null && labels.Any()) {
+      foreach (var label in labels) {
+        parameters.Add(key: "match[]", label);
+      }
+    }
+
+    if(start != null && end != null){
+      parameters.Add(key: "start", start);
+      parameters.Add(key: "end", end);
+    }
+
+    using var client = this._clientFactory();
+    // var labelVal = labels[0];
+    using var response = await client.PostAsync(
+      // $"{PrometheusClient.BaseUrlPath}{PrometheusClient.LabelsUrlPath}?match[]={labelVal}",
+      $"{PrometheusClient.BaseUrlPath}{PrometheusClient.LabelsUrlPath}" +
+      (parameters.Count > 0 ? $"?{parameters}" : ""),
+      new StringContent(
+        parameters.ToString(),
+        Encoding.UTF8,
+        PrometheusClient.FormUrlEncodedMediaType),
+      cancellationToken
+    );
+
+    return await PrometheusClient.HandleLabelsResponse(response, cancellationToken);
   }
 
   /// <summary>

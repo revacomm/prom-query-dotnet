@@ -142,6 +142,39 @@ public class PrometheusClient : IPrometheusClient {
     }
   }
 
+  private static async Task<ResponseEnvelope<IImmutableList<IImmutableDictionary<String, String>>>> HandleSeriesResponse(
+    HttpResponseMessage response, CancellationToken ct) {
+    // if (successful response)
+    //   Deserialize ResponseEnvelope<QueryResults>
+    if (response.IsSuccessStatusCode) {
+      var responseBody =
+        await response.Content.ReadFromJsonAsync<ResponseEnvelope<IImmutableList<IImmutableDictionary<String, String>>>>(
+          PrometheusClient.SerializerOptions,
+          ct
+        );
+
+      return responseBody ?? throw new InvalidOperationException("Prometheus API returned null response to query.");
+    } else {
+      // Non success error code? throw exception
+      //   if there is a body w/ ErrorType/Error, include that in the exception message (TODO: special exception type?)
+      if (response.Content.Headers.Contains("content-type")) {
+        var responseBody =
+          await response.Content.ReadFromJsonAsync<ResponseEnvelope<IImmutableList<IImmutableDictionary<String, String>>>>(
+            PrometheusClient.SerializerOptions,
+            ct
+          );
+
+        throw new InvalidOperationException(
+          $"Prometheus returned non success status code ({response.StatusCode}) from query operation. Error Type: {responseBody?.ErrorType}, Detail: {responseBody?.Error}"
+        );
+      } else {
+        throw new InvalidOperationException(
+          $"Prometheus returned non success status code ({response.StatusCode}) from query operation."
+        );
+      }
+    }
+  }
+
   public async Task<ResponseEnvelope<QueryResults>> QueryRangeAsync(
     String query,
     DateTime start,
@@ -217,9 +250,7 @@ public class PrometheusClient : IPrometheusClient {
     }
 
     using var client = this._clientFactory();
-    // var labelVal = labels[0];
     using var response = await client.GetAsync(
-      // $"{PrometheusClient.BaseUrlPath}{PrometheusClient.LabelsUrlPath}?match[]={labelVal}",
       $"{PrometheusClient.BaseUrlPath}{PrometheusClient.LabelsUrlPath}" +
       (parameters.Count > 0 ? $"?{parameters}" : ""),
       cancellationToken
@@ -248,9 +279,7 @@ public class PrometheusClient : IPrometheusClient {
     }
 
     using var client = this._clientFactory();
-    // var labelVal = labels[0];
     using var response = await client.PostAsync(
-      // $"{PrometheusClient.BaseUrlPath}{PrometheusClient.LabelsUrlPath}?match[]={labelVal}",
       $"{PrometheusClient.BaseUrlPath}{PrometheusClient.LabelsUrlPath}",
       new StringContent(
         parameters.ToString(),
@@ -290,6 +319,75 @@ public class PrometheusClient : IPrometheusClient {
     );
 
     return await PrometheusClient.HandleLabelsResponse(response, cancellationToken);
+  }
+
+  public async Task<ResponseEnvelope<IImmutableList<IImmutableDictionary<String, String>>>> SeriesAsync(
+    String[] seriesSelectors,
+    DateTime? start,
+    DateTime? end,
+    CancellationToken cancellationToken = default) {
+
+    var parameters = new UriQueryStringParameterCollection();
+
+    if (!seriesSelectors.Any()) {
+      throw new InvalidOperationException(
+        "At least one match[] argument must be provided."
+      );
+    }
+
+    foreach (var series in seriesSelectors) {
+        parameters.Add(key: "match[]", series);
+    }
+
+    if(start != null && end != null){
+      parameters.Add(key: "start", start);
+      parameters.Add(key: "end", end);
+    }
+
+    using var client = this._clientFactory();
+    using var response = await client.GetAsync(
+      $"{PrometheusClient.BaseUrlPath}{PrometheusClient.SeriesUrlPath}" +
+      (parameters.Count > 0 ? $"?{parameters}" : ""),
+      cancellationToken
+    );
+
+    return await PrometheusClient.HandleSeriesResponse(response, cancellationToken);
+  }
+
+  public async Task<ResponseEnvelope<IImmutableList<IImmutableDictionary<String, String>>>> SeriesPostAsync(
+    String[] seriesSelectors,
+    DateTime? start,
+    DateTime? end,
+    CancellationToken cancellationToken = default) {
+
+    var parameters = new UriQueryStringParameterCollection();
+
+    if (!seriesSelectors.Any()) {
+      throw new InvalidOperationException(
+        "At least one match[] argument must be provided."
+      );
+    }
+
+    foreach (var series in seriesSelectors) {
+        parameters.Add(key: "match[]", series);
+    }
+
+    if(start != null && end != null){
+      parameters.Add(key: "start", start);
+      parameters.Add(key: "end", end);
+    }
+
+    using var client = this._clientFactory();
+    using var response = await client.PostAsync(
+      $"{PrometheusClient.BaseUrlPath}{PrometheusClient.SeriesUrlPath}",
+      new StringContent(
+        parameters.ToString(),
+        Encoding.UTF8,
+        PrometheusClient.FormUrlEncodedMediaType),
+      cancellationToken
+    );
+
+    return await PrometheusClient.HandleSeriesResponse(response, cancellationToken);
   }
 
   /// <summary>

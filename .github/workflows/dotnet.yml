@@ -27,7 +27,7 @@ jobs:
       run: dotnet build
       working-directory: prom-query-dotnet
     - name: Install snappy
-      run: sudo apt-get install snappy
+      run: sudo apt-get install libsnappy-dev
     - name: Test
       run: dotnet test
       working-directory: test/prom-query-tests

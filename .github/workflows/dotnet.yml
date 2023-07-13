@@ -26,6 +26,9 @@ jobs:
     - name: Build
       run: dotnet build
       working-directory: prom-query-dotnet
+    - name: Start containers
+      run: docker-compose up -d --build
+      
     - name: Install snappy
       run: sudo apt-get install libsnappy-dev
     - name: Test

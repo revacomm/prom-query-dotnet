@@ -23,7 +23,7 @@ jobs:
       working-directory: prom-query-dotnet
       
     - name: Build
-      run: dotnet build -c Release
+      run: dotnet build --configuration Release --no-restore
       working-directory: prom-query-dotnet
       
     - name: Start containers
@@ -33,7 +33,7 @@ jobs:
       run: sudo apt-get install libsnappy-dev
       
     - name: Test
-      run: dotnet test -c Release --no-build
+      run: dotnet test --no-restore verbosity normal
       working-directory: test/prom-query-tests
       
     - name: Build and create Nuget package

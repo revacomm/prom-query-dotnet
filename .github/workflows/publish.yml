@@ -30,7 +30,9 @@ jobs:
       run: docker-compose up -d --build prometheus
       
     - name: Install snappy
-      run: sudo apt-get install libsnappy-dev
+      run: |
+        sudo apt-get update
+        sudo apt-get install libsnappy-dev
       
     - name: Test
       run: dotnet test --no-restore --verbosity normal

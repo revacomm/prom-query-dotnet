@@ -1,0 +1,49 @@
+name: .NET
+
+on:
+  release: 
+    types: ["published"]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    
+    - uses: actions/checkout@v3
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: 6.0.x
+        
+    - name: Install dependencies
+      run: dotnet restore
+      working-directory: prom-query-dotnet
+      
+    - name: Build
+      run: dotnet build -c Release
+      working-directory: prom-query-dotnet
+      
+    - name: Start containers
+      run: docker-compose up -d --build prometheus
+      
+    - name: Install snappy
+      run: sudo apt-get install libsnappy-dev
+      
+    - name: Test
+      run: dotnet test -c Release --no-build
+      working-directory: test/prom-query-tests
+      
+    - name: Build and create Nuget package
+      run: dotnet build -c Release --no-build --output .
+      working-directory: prom-query-dotnet
+      
+    - name: Publish
+      if: startsWith(github.ref, 'refs/heads/release')
+      run: nuget push **\*.nupkg --api-key ${{secrets.PUBLISH_TO_NUGET_ORG}} --source 'https://api.nuget.org/v3/index.json'
+      
+    - name: Stop containers
+      if: always()
+      run: docker-compose down

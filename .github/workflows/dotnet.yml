@@ -4,6 +4,8 @@
 name: .NET
 
 on:
+  create: 
+    branches: [ "release/**" ]
   push:
     branches: [ "main" ]
   pull_request:
@@ -33,6 +35,9 @@ jobs:
     - name: Test
       run: dotnet test
       working-directory: test/prom-query-tests
+    - name: Publish
+      if: startsWith(github.ref, 'refs/heads/release')
+      run: nuget push **\*.nupkg --source 'https://api.nuget.org/v3/index.json' --api-key ${{secrets.PUBLISH_TO_NUGET_ORG}}
     - name: Stop containers
       if: always()
-      run: docker-compose down 
+      run: docker-compose down

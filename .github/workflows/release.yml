@@ -47,11 +47,11 @@ jobs:
       working-directory: test/prom-query-tests
       
     - name: Pack
-      run: dotnet pack --output nupkgs --no-restore --no-build /p:PackageVersion=$VERSION
+      run: dotnet pack --no-restore --no-build /p:PackageVersion=$VERSION
       working-directory: prom-query-dotnet
       
     - name: Publish
-      run: dotnet nuget push nupkgs/*.nupkg --api-key ${{secrets.PUBLISH_TO_NUGET_ORG}} --source 'https://api.nuget.org/v3/index.json'
+      run: dotnet nuget push **/*.nupkg --api-key ${{secrets.PUBLISH_TO_NUGET_ORG}} --source 'https://api.nuget.org/v3/index.json'
       
     - name: Stop containers
       if: always()

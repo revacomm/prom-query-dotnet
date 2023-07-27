@@ -3,7 +3,7 @@
 ## Overview
 Prom Query SDK is a C# SDK for the Prometheus HTTP API
 
-#### Documentation Reference
+#### Documentation
 https://prometheus.io/docs/prometheus/latest/querying/api/
 
 ## Usage

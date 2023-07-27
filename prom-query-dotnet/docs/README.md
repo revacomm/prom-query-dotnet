@@ -1,4 +1,4 @@
-# Prom Query SDK [<img src=https://www.cncf.io/wp-content/uploads/2020/08/prometheusBanner-1.png width="75" height="23"/>](https://www.cncf.io/wp-content/uploads/2020/08/prometheusBanner-1.png)
+# Prom Query SDK
 
 ## Overview
 Prom Query SDK is a C# SDK for the Prometheus HTTP API

@@ -28,6 +28,7 @@ jobs:
       
     - name: Restore dependencies
       run: dotnet restore
+      working-directory: prom-query-dotnet
       
     - name: Build
       run: dotnet build --no-restore /p:Version=$VERSION

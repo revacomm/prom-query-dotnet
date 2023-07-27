@@ -43,7 +43,7 @@ jobs:
         sudo apt-get install libsnappy-dev
       
     - name: Test
-      run: dotnet test --no-build --verbosity normal
+      run: dotnet test
       working-directory: test/prom-query-tests
       
     - name: Pack
